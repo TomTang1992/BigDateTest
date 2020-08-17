@@ -1,0 +1,24 @@
+---第一题：
+select team, count(*) champion
+from (select team, year,
+year-row_number() over (partition by team order by
+year) gid
+from t1) t1
+group by team, gid
+having champion>=3;
+
+---第二题：
+select id, time, price,
+lag(price) over(partition by id order by time) lagpv,
+lead(price) over(partition by id order by time) leadpv,
+case when
+price>lag(price) over(partition by id order by time)  and
+price>lead(price) over(partition by id order by time) then '1' else '0'end as crest,
+case when
+price<lag(price) over(partition by id order by time)  and
+price<lead(price) over(partition by id order by time) then '1' else '0' end as trough
+from t2;
+
+
+---第三题
+
