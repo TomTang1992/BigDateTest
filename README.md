@@ -5,3 +5,6 @@
 #提取码：1pz9
 #一阶段模块二作业：src\homeWork\一阶段模块二作业
 #一阶段模块三作业：src\homeWork\一阶段模块三作业
+#一阶段模块四zookeepr作业：src\main\java\com\tdf\zookeeper
+#一阶段模块四habase作业：src\main\java\com\tdf\hbase
+#一阶段模块四zakaban作业：src\main\java\com\tdf\zakaban
