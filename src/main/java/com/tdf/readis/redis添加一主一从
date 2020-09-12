@@ -1,0 +1,6 @@
+1、​ 部署实例7007，7008：启动redis: ./redis-server redis.conf
+2、添加7007结点作为新节点： ./redis-cli --cluster add-node 192.168.70.131:7007 192.168.70.131:7001
+3、查看集群结点发现7007已添加到集群中：./redis-cli  -h 127.0.0.1 -p 7007 -c；cluster nodes
+4、给刚添加的7007结点分配槽​，连接集群（集群中任意节点）： ./redis-cli --cluster reshard 192.168.70.131:7007：
+5、添加从节点：./redis-cli --cluster add-node 192.168.70.131:7008 192.168.70.131:7007 --cluster-slave --cluster-master-id 42a0c47c9f56db1ca5fbc9e899780e01839c9c0a
+

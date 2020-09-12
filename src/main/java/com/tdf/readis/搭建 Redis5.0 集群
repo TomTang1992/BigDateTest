@@ -1,0 +1,5 @@
+1、创建 Redis 集群目录：mkdir -p /opt/redis-cluster/nodes-{7001,7002}；
+2、集群目录创建并添加配置，修改redis.conf文件：参看本目录下得redis.conf;
+3、下载并安装 ruby：搭建 Redis 集群会使用到 redis-trib.rb 脚本来协助创建，所以需要依赖 ruby。
+4、其他两台虚拟机上重复上述步骤1和2
+5、创建 Redis 集群：使用 redis-trib.rb 脚本创建 Redis 集群，执行如下命令后，会自动分配集群中的 3 个 master 和 3 个 slave。
