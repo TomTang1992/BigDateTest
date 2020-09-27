@@ -8,3 +8,4 @@
 #一阶段模块四zookeepr作业：src\main\java\com\tdf\zookeeper
 #一阶段模块四habase作业：src\main\java\com\tdf\hbase
 #一阶段模块四zakaban作业：src\main\java\com\tdf\zakaban
+#二阶段模块一redis作业：src/main/java/com/tdf/readis
