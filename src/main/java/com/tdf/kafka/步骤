@@ -1,0 +1,22 @@
+1、安装git:
+yum install -y git
+# 安装相关依赖
+yum install -y gcc gcc-c++ zlib zlib-devel openssl openssl-devel pcre pcre-devel
+# 将kafka的客户端源码clone到本地
+cd /opt/lagou/software
+git clone https://github.com/edenhill/librdkafka
+# 编译
+./configure
+make && make install
+2、安装nginx
+wget http://nginx.org/download/nginx-1.18.0.tar.gz
+# 解压
+tar -zxf nginx-1.18.0.tar.gz
+3.下载ngx_kafka_module，并编译
+cd /opt/lagou/software
+git clone https://github.com/brg-liuwei/ngx_kafka_module
+# 进入到nginx的源码包目录下	（编译nginx，然后将插件同时编译）
+cd /opt/lagou/software/nginx-1.18.0
+./configure --add-module=/opt/lagou/software/ngx_kafka_module/
+make && make install
+4.启动zookeeper和kafka，提前创建收集日志的topic，并启动消费者
