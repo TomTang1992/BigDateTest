@@ -1,0 +1,22 @@
+1、对表dws.dws_member_start_day中的数据用row_number()函数进行排名，并且根据设备号device_id分组，
+登录日期dt排序；用日期减去排名，得到分组ID gid。并限定日期为最近七天
+select device_id, dt, date_sub(dt, row_number() over(partition by device_id order by dt))
+gid from dws.dws_member_start_day where dt between  date_sub(current_date, -7) and current_date;
+2、再根据设备号和gid分组，求出统计值cnt大于等于3的记录：
+with tmp as (
+  select device_id, dt, date_sub(dt, row_number() over(partition by device_id order by dt)) gid from dws.dws_member_start_day dt between  date_sub(current_date, -7) and current_date
+)
+select device_id, count(1) cnt from tmp
+group by device_id, gid
+having cnt >= 3;
+3、因为可能存在前三天连续登录，然后中间一天不登录，后三天又连续登录的情况，所以需要根据device_id去重去掉重复的活跃会员，
+最后统计记录数即为最近七天连续三天活跃的会员数：
+with tmp as (
+  select device_id, dt, date_sub(dt, row_number() over(partition by device_id order by dt)) gid from dws.dws_member_start_day where dt between  date_sub(current_date, -7) and current_date
+)
+select count(distinct device_id) total from
+(
+  select device_id, count(1) cnt from tmp
+  group by device_id, gid
+  having cnt >= 3
+) tmp2;
