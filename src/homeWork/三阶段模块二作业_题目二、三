@@ -128,3 +128,135 @@ current_wk.mid_id=last_wk.mid_id
 where last_wk.mid_id is null;
 题目三、 在核心交易分析中完成如下指标的计算统计2020年每个季度的销售订单笔数、订单总额统计2020年每个月的销售订单笔数、
 订单总额统计2020年每周（周一到周日）的销售订单笔数、订单总额统计2020年国家法定节假日、休息日、工作日的订单笔数、订单总额
+1、创建日期数据表：
+ drop table if exists `itcast_dw`.`dim_date`;
+ CREATE TABLE `itcast_dw`.`dim_date`(
+  `date_key` string,
+  `date_value` string,
+  `day_in_year` string,
+  `day_in_month` string,
+  `is_first_day_in_month` string,
+  `is_last_day_in_month` string,
+  `weekday` string,
+  `week_in_month` string,
+  `is_first_day_in_week` string,
+  `is_dayoff` string,
+  `is_workday` string,
+  `is_holiday` string,
+  `date_type` string,
+  `month_number` string,
+  `year` string,
+  `year_month_number` string,
+  `quarter_name` string,
+  `quarter_number` string,
+  `year_quarter` string)
+ STORED AS PARQUET;
+2、创建ads层数据表
+drop table if exists itcast_ads.ads_order_date;
+create table itcast_ads.ads_order_date(
+date_type string, – 时间维度类型
+date_val string, – 时间维度值
+order_count bigint, – 订单笔数
+order_money double – 订单交易额
+)
+partitioned by (dt string)
+STORED AS PARQUET;
+3、创建DW层数据表：
+DROP TABLE IF EXISTS itcast_dw.fact_order_goods;
+CREATE TABLE itcast_dw.fact_order_goods(
+ogid bigint,
+orderid bigint,
+goodsid bigint,
+goodsnum bigint,
+goodsprice double,
+goodsspecid bigint,
+goodsspecnames string,
+goodsname string,
+goodsimg string,
+extrajson string,
+goodstype bigint,
+commissionrate double,
+goodscode string,
+createtime string)
+partitioned by (dt string)
+STORED AS PARQUET;
+4、数据加载：
+insert overwrite table itcast_dw.fact_order_goods partition(dt=‘20201231’)
+select
+ogid,
+orderid,
+goodsid,
+goodsnum,
+goodsprice,
+goodsspecid,
+goodsspecnames,
+goodsname,
+goodsimg,
+extrajson,
+goodstype,
+commissionrate,
+goodscode,
+createtime
+from
+itcast_ods.itcast_order_goods
+where dt=‘20201231’;
+5、统计2020年期间每个季度的销售订单笔数、订单总额
+insert overwrite table itcast_ads.ads_order_date partition(dt=‘20201231’)
+select
+‘1’ as date_type, – 时间维度类型，1表示季度
+t1.year_quarter as date_val, – 季度名称
+count(distinct t2.orderid), – 订单总数
+sum(t2.goodsprice*t2.goodsnum) – 订单总额
+from
+itcast_dw.dim_date t1
+left join
+(select * from itcast_dw.fact_order_goods where dt=‘20201231’) t2
+on t1.date_value = substr(createtime, 1, 10)
+group by t1. year_quarter
+order by t1.year_quarter;
+6、统计2020年期间每个月的销售订单笔数、订单总额
+insert into table itcast_ads.ads_order_date partition(dt=‘20201231’)
+select
+‘2’ as date_type, --2表示月类型
+t1.year_month_number as date_val,
+count(distinct t2.orderid), – 订单总数
+sum(t2.goodsprice*t2.goodsnum) – 订单总额
+from
+itcast_dw.dim_date t1
+left join
+(select * from itcast_dw.fact_order_goods where dt <=‘20201231’ and dt >= ‘20200101’) t2
+on t1.date_value = substr(createtime, 1, 10)
+group by
+t1.year_month_number
+order by t1.year_month_number;
+7、统计2020年期间每周一到周日的销售订单笔数、订单总额
+insert into table itcast_ads.ads_order_date partition(dt=‘20201231’)
+select
+‘3’ as date_type,--3表示周类型
+t1.weekday as date_val,
+count(distinct t2.orderid), – 订单总数
+sum(t2.goodsprice*t2.goodsnum) – 订单总额
+from
+itcast_dw.dim_date t1
+left join
+(select * from itcast_dw.fact_order_goods where dt =‘20201231’) t2
+on t1.date_value = substr(createtime, 1, 10)
+group by
+t1.weekday
+order by t1.weekday;
+8、统计2020年期间国家法定节假日、休息日、工作日的订单笔数、订单总额
+insert into table itcast_ads.ads_order_date partition(dt=‘20201231’)
+select
+‘4’ as date_type,--日期类型（节假日、休息日、工作日
+t1.date_type as date_val,
+count(distinct t2.orderid) as order_count, – 订单总数
+sum(t2.goodsprice*t2.goodsnum) as order_money – 订单总额
+from
+itcast_dw.dim_date t1
+left join
+(select * from itcast_dw.fact_order_goods where dt <=‘20201231’ and dt >= ‘20200101’) t2
+on t1.date_value = substr(createtime, 1, 10)
+group by
+t1.date_type
+order by t1.date_type;
+​
