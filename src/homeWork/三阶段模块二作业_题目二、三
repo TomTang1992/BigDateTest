@@ -1,0 +1,130 @@
+二、在会员分析中计算沉默会员数和流失会员数沉默会员的定义：只在安装当天启动过App，而且安装时间是在7天前流失会员的定义：最近30天未登录的会员
+1、活跃设备数建表语句：
+drop table if exists ads_uv_count;
+create external table ads_uv_count(
+	`dt` string COMMENT '统计日期',
+	`day_count` bigint COMMENT '当日用户数量',
+	`wk_count` bigint COMMENT '当周用户数量',
+	`mn_count` bigint COMMENT '当月用户数量',
+	`is_weekend` string COMMENT 'Y,N是否是周末,用于得到本周最终结果',
+	`is_monthend` string COMMENT 'Y,N 是否是月末,用于得到本月最终结果'
+)
+COMMENT '活跃设备数'
+row format delimited fields terminated by '\t'
+location '/warehouse/gmall/ads/ads_uv_count/';
+2、导入数据：
+insert into table ads_uv_count
+select
+	'2020-03-10' dt,
+	daycount.ct,
+	wkcount.ct,
+	mncount.ct,
+	if(date_add(next_day('2020-03-10','MO'),-1)='2020-03-10','Y','N'),
+	if(last_day('2020-03-10')='2020-03-10','Y','N')
+from
+(
+	select
+		'2020-03-10' dt,
+		count(*) ct
+	from
+		dwt_uv_topic
+	where
+		login_date_last='2020-03-10'
+) daycount
+join
+(
+	select
+		'2020-03-10' dt,
+		count (*) ct
+	from
+		dwt_uv_topic
+	where
+		login_date_last>=date_add(next_day('2020-03-10','MO'),-7) and login_date_last<= date_add(next_day('2020-03-10','MO'),-1)
+) wkcount
+on daycount.dt=wkcount.dt
+join
+(
+	select
+		'2020-03-10' dt,
+		count (*) ct
+	from
+		dwt_uv_topic
+	where
+		date_format(login_date_last,'yyyy-MM')=date_format('2020-03-10','yyyy-MM')
+)mncount on daycount.dt=mncount.dt;
+3、每日新增设备建表语句：
+drop table if exists ads_new_mid_count;
+create external table ads_new_mid_count (
+	`create_date` string comment '创建时间',
+	`new_mid_count` BIGINT comment '新增设备数量'
+) COMMENT '每日新增设备信息数量'
+row format delimited fields terminated by '\t'
+location '/warehouse/gmall/ads/ads_new_mid_count/';
+4、导入数据；
+insert into table ads_new_mid_count
+  select
+  	login_date_first,
+  	count(*)
+  from
+  	dwt_uv_topic
+  where
+  	login_date_first='2020-03-10'
+  group by login_date_first;
+5、统计沉默用户数，建表语句：
+drop table if exists ads_silent_count;
+create external table ads_silent_count(
+	`dt` string COMMENT '统计日期',
+	`silent_count` bigint COMMENT '沉默设备数'
+)
+row format delimited fields terminated by '\t'
+location '/warehouse/gmall/ads/ads_silent_count';
+6、加载数据：
+insert into table ads_silent_count
+select
+	'2020-03-15',
+	count(*)
+from
+	dwt_uv_topic
+where
+	login_date_first=login_date_last and login_date_last<=date_add('2020-03-15',-7);
+7、统计本周回流用户数，建表语句
+drop table if exists ads_back_count;
+create external table ads_back_count(
+	`dt` string COMMENT '统计日期',
+	`wk_dt` string COMMENT '统计日期所在周',
+	`wastage_count` bigint COMMENT '回流设备数'
+)
+row format delimited fields terminated by '\t'
+location '/warehouse/gmall/ads/ads_back_count';
+8、加载数据：
+insert into table ads_back_count
+select
+	'2020-03-15',
+	'1',
+	count(*)
+from
+(
+	select
+		mid_id
+	from
+		dwt_uv_topic
+	where
+		login_date_last>=date_add(next_day('2020-03-15','MO'),-7)
+		and login_date_last<= date_add(next_day('2020-03-15','MO'),-1)
+		and login_date_first<date_add(next_day('2020-03-15','MO'),-7)
+) current_wk
+left join
+(
+	select
+		mid_id
+	from
+		dws_uv_detail_daycount
+	where
+		dt>=date_add(next_day('2020-03-15','MO'),-7*2)
+		and dt<= date_add(next_day('2020-03-15','MO'),-7-1)
+	group by mid_id
+) last_wk on
+current_wk.mid_id=last_wk.mid_id
+where last_wk.mid_id is null;
+题目三、 在核心交易分析中完成如下指标的计算统计2020年每个季度的销售订单笔数、订单总额统计2020年每个月的销售订单笔数、
+订单总额统计2020年每周（周一到周日）的销售订单笔数、订单总额统计2020年国家法定节假日、休息日、工作日的订单笔数、订单总额

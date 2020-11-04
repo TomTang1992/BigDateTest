@@ -1,0 +1,48 @@
+一. 用拉链表实现核心交易分析中DIM层商家维表，并实现该拉链表的回滚（自己构造数据，编写SQL，并要有相应的文字说明）
+1、拉链表建表语句
+create table dim.dim_trade_shops_org(
+shopid int, -- 商家ID
+shopName string, -- 商家名称
+cityId int, -- 商家所在城市ID
+cityName string , -- 商家所在城市名称
+regionId int , -- 商家所在片区ID 如华东、华南
+regionName string, -- 商家所在片区名称 如华东、华南
+start_dt string, -- 拉链表补充数据:数据生效日期
+end_dt string-- 拉链表补充数据:数据失效日期
+)STORED AS PARQUET;
+2、初始化拉链表数据，加载数据：
+with tmp as (
+select
+   t1.shopid,
+   t1.shopname,
+   t2.id as cityid,
+   t2.orgname as cityname,
+   t3.id as regionid,
+   t3.orgname as regionname,
+   case when t1.modifyTime is not null
+     then substr(t1.modifyTime, 0, 10)
+     else substr(t1.createTime, 0, 10)
+   end as start_dt,
+   '9999-12-31' as end_dt
+from (select shopId, shopName, areaId,modifyTime,createTime
+    from ods.ods_trade_shops where dt='2020-09-01') t1   -- 查询初始化数据
+   left join  -- 查询城市
+   (select id, parentId, orgname, orglevel
+    from ods.ods_trade_shop_admin_org
+    where orglevel=2 and dt='2020-09-01') t2
+   on t1.areaid = t2.id
+   left join  -- 查询区域
+   (select id, parentId, orgname, orglevel
+    from ods.ods_trade_shop_admin_org
+    where orglevel=1 and dt='2020-09-01') t3
+   on t2.parentid = t3.id)
+insert overwrite table dim.dim_trade_shops_org
+select shopid,shopname,cityid,cityname,regionid,regionname,start_dt,end_dt from tmp;
+3、拉链表数据回滚，恢复到指定日期那一天的数据
+insert overwrite table dim.dim_trade_shops_org
+select shopid,shopname,cityid,cityname,regionid,regionname,start_dt,end_dt
+ from dim.dim_trade_shops_org where end_dt < '2020-09-02'
+union
+select shopid,shopname,cityid,cityname,regionid,regionname,start_dt,'9999-09-01' as end_dt
+from dim.dim_trade_shops_org
+where start_dt <= '2020-09-02' and end_dt >= '2020-09-02';
