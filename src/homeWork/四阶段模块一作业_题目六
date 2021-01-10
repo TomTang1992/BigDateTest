@@ -1,0 +1,24 @@
+---6、A表有三个字段：ID、startdate、enddate，有3条数据：
+val df = spark.read
+  .option("inferSchema", "true")
+  .option("header", "true")
+  .csv("lagou-data/time.csv")
+
+df.createOrReplaceTempView("times")
+
+spark.sql(
+  """
+    |with collect_times as (
+    |   select array_union(collect_set(startdate), collect_set(enddate)) as dates
+    |   from times
+    |), all_times as (
+    |   select explode(dates) as date,
+    |          row_number() over(order by date) as number
+    |   from collect_times
+    |   order by date
+    |)
+    |select t1.date as startdate,
+    |       coalesce(t2.date, t1.date) as enddate
+    |from all_times t1
+    |  left join all_times t2 on t1.number + 1 = t2.number
+    |""".stripMargin).show

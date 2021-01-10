@@ -1,0 +1,16 @@
+--点击与曝光日志分析
+val clickRDD = spark.sparkContext.textFile("lagou-data/click.log")
+  .map(line => ("\\d+$".r.findFirstIn(line).getOrElse(""), 1))
+
+val impRDD = spark.sparkContext.textFile("lagou-data/imp.log")
+  .map(line => ("\\d+$".r.findFirstIn(line).getOrElse(""), 1))
+
+val result = clickRDD.cogroup(impRDD) // 在 cogroup 时有一次 shuffle
+  .mapValues { case (clickBuffer, impBuffer) => (clickBuffer.sum, impBuffer.sum) }
+
+// 保存到 hdfs
+result.saveAsTextFile("hdfs://lagou-data/click_imp_count/")
+
+for((id, values) <- result.collect) {
+  println(s"adid: $id 点击数: ${values._1}  曝光数: ${values._2}")
+}
