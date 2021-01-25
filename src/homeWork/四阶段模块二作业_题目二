@@ -1,0 +1,79 @@
+--假设机场的数据如下：
+  1, "SFO"
+  2, "ORD"
+  3, "DFW"
+  机场两两之间的航线及距离如下：
+  1, 2,1800
+  2, 3, 800
+  3, 1, 1400
+  用 GraphX 完成以下需求：
+   求所有的顶点
+   求所有的边
+   求所有的triplets
+   求顶点数
+   求边数
+   求机场距离大于1000的有几个，有哪些按所有机场之间的距离排序（降序），输出结果
+   val conf: SparkConf = new SparkConf()
+     .setAppName("airport data")
+     .setMaster( "local[*]")
+   val sc = new SparkContext(conf)
+
+   // 定义顶点
+   val vertexArray: Array[(VertexId, String)] = Array(
+     (1L, "SFO"),
+     (2L, "ORD"),
+     (3L, "DFW")
+   )
+
+   // 机场之间的航线及距离
+   val edgeArray: Array[Edge[Int]] = Array(
+     Edge(1L, 2L, 800),
+     Edge(2L, 3L, 800),
+     Edge(3L, 1L, 1400)
+   )
+
+   // 构造 RDD
+   val vertexRDD = sc.makeRDD(vertexArray)
+   val edgeRDD = sc.makeRDD(edgeArray)
+
+   // 构造图
+   val graph: Graph[String, Int] = Graph(vertexRDD, edgeRDD)
+
+   // 所有的顶点
+   graph.vertices.foreach(println)
+   //  (3,DFW)
+   //  (2,ORD)
+   //  (1,SFO)
+
+   // 所有的边
+   graph.edges.foreach(println)
+   //  Edge(1,2,800)
+   //  Edge(2,3,800)
+   //  Edge(3,1,1400)
+
+   // 所有的 triplets
+   graph.triplets.foreach(println)
+   //  ((3,DFW),(1,SFO),1400)
+   //  ((2,ORD),(3,DFW),800)
+   //  ((1,SFO),(2,ORD),800)
+
+   // 求顶点数
+   println(graph.vertices.count)
+   //  3
+
+   // 求边数
+   println(graph.edges.count)
+   //  3
+
+   // 机场距离大于1000的有哪些
+   graph.triplets.filter(_.attr > 1000)
+     .foreach(println)
+   //  ((3,DFW),(1,SFO),1400)
+
+
+   // 按所有机场之间的距离排序（降序），输出结果
+   graph.triplets.sortBy(_.attr, false)
+     .foreach(println)
+   //  ((3,DFW),(1,SFO),1400)
+   //  ((1,SFO),(2,ORD),800)
+   //  ((2,ORD),(3,DFW),800)

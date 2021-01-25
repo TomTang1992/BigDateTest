@@ -1,0 +1,112 @@
+--将sample.log的数据发送到Kafka中，经过Spark Streaming处理，将数据格式变为以下形式：
+--commandid | houseid | gathertime | srcip | destip |srcport| destport | domainname | proxytype | proxyip | proxytype | title | content | url | logid
+1、编写辅助类：KafkaConfig
+object KafkaConfig {
+  val BROKERS = "izuf66rzw9m809spfn9yuaz:9092,izuf66rzw9m809spfn9yubz:9092,izuf66rzw9m809spfn9yucz:9092"
+
+  def getProducerParameters(): Properties = {
+    val prop = new Properties()
+    prop.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, BROKERS)
+    prop.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, classOf[LongSerializer])
+    prop.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, classOf[StringSerializer])
+    prop
+  }
+
+  def getKafkaConsumerParameters(groupId: String): Map[String, Object] = {
+    Map[String, Object](
+      ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG -> BROKERS,
+      ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG -> classOf[LongDeserializer],
+      ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG -> classOf[StringDeserializer],
+      ConsumerConfig.GROUP_ID_CONFIG -> groupId,
+      ConsumerConfig.AUTO_OFFSET_RESET_CONFIG -> "earliest",
+      ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG -> (false: java.lang.Boolean)
+    )
+  }
+}
+2、定义case class Log
+case class Log(commandid: String,
+               houseid: String,
+               gathertime: String,
+               srcip: String,
+               destip: String,
+               srcport: String,
+               destport: String,
+               domainname: String,
+               proxytype: String,
+               proxyid: String,
+               title: String,
+               content: String,
+               url: String,
+               logid: String
+              )
+
+object Log {
+  def apply(line: String): Log = {
+    val fields = line.split(",")
+      .map(formatField)
+
+    new Log(fields(0), fields(1), fields(2), fields(3),
+      fields(4), fields(5), fields(6), fields(7),
+      fields(8), fields(9), fields(10), fields(11),
+      fields(13), fields(14)
+    )
+  }
+
+  def formatField(field: String): String = {
+    field.replaceAll("<<<!>>>", "")
+  }
+}
+3、KafkaTask1 完成从日志文件读取，并写入 Kafka
+object KafkaTask1 {
+  def main(args: Array[String]): Unit = {
+    // KafkaProducer
+    val properties = KafkaConfig.getProducerParameters()
+    val producer = new KafkaProducer[Long, String](properties)
+    val topic = "spark-task-topic1"
+
+    // 读取文本日志
+    val source = Source.fromFile("lagou-data/sample.log")
+
+    var key = 0L
+    val lines = source.getLines()
+
+    // 将日志逐行写入 kafka
+    lines.foreach{line =>
+      key += 1
+      val msg = new ProducerRecord[Long, String](topic, key, line)
+      producer.send(msg)
+      println(s"key = $key, message = $line")
+      Thread.sleep(1000)
+    }
+
+    source.close()
+    producer.close()
+  }
+}
+4、KafkaTask2 使用 spark streaming 从Kafka 中读取行，转换后再写入另一个 kafka topic
+object KafkaTask1 {
+  def main(args: Array[String]): Unit = {
+    // KafkaProducer
+    val properties = KafkaConfig.getProducerParameters()
+    val producer = new KafkaProducer[Long, String](properties)
+    val topic = "spark-task-topic1"
+
+    // 读取文本日志
+    val source = Source.fromFile("lagou-data/sample.log")
+
+    var key = 0L
+    val lines = source.getLines()
+
+    // 将日志逐行写入 kafka
+    lines.foreach{line =>
+      key += 1
+      val msg = new ProducerRecord[Long, String](topic, key, line)
+      producer.send(msg)
+      println(s"key = $key, message = $line")
+      Thread.sleep(1000)
+    }
+
+    source.close()
+    producer.close()
+  }
+}
