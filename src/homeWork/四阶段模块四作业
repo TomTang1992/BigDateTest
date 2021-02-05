@@ -1,0 +1,27 @@
+val conf = new SparkConf()
+  .setAppName(this.getClass.getCanonicalName.init)
+  .setMaster("local[*]")
+val sc = new SparkContext(conf)
+
+val random = scala.util.Random
+
+val col1 = Range(1, 5).map(idx => (random.nextInt(10), s"user$idx"))
+val col2 = Array((0, "BJ"), (1, "SH"), (2, "GZ"), (3, "SZ"), (4, "TJ"),
+  (5, "CQ"), (6, "HZ"), (7, "NJ"), (8, "WH"), (9, "CD"))
+val rdd1: RDD[(Int, String)] = sc.makeRDD(col1)
+val rdd2: RDD[(Int, String)] = sc.makeRDD(col2)
+
+val rdd3 = rdd1.join(rdd2)
+println(rdd3.toDebugString)
+rdd3.collect.foreach(println)
+
+println("---------------------------------------------------------------")
+
+val rdd4 = rdd1.partitionBy(new HashPartitioner(3))
+  .join(rdd2.partitionBy(new HashPartitioner(3)))
+println(rdd4.toDebugString)
+rdd4.collect.foreach(println)
+
+
+答：1、两个打印的结果都是 OneToOneDependecy，因为 join 算子过程会产生三个 RDD，最后一个 RDD 是 mapValues 操作，一定是窄依赖；
+   2、当 join 操作的两个 RDD 拥有相同的分区器时，是窄依赖，否则是宽依赖
