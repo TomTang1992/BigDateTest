@@ -4,7 +4,6 @@ import org.apache.kudu.client.KuduClient;
 import org.apache.kudu.client.KuduException;
 
 /**
- * @author : spiral
  * @description : 删除表操作
  */
 public class DeleteTable {

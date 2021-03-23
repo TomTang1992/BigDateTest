@@ -3,9 +3,7 @@ package org.spiral.kudedemo;
 import org.apache.kudu.client.*;
 
 /**
- * @author : spiral
  * @description : 删除指定行
- * @since : 2020/12/16 - 5:32 下午
  */
 public class DeleteItem {
     public static void main(String[] args) {

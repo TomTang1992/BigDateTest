@@ -3,9 +3,7 @@ package org.spiral.kudedemo;
 import org.apache.kudu.client.*;
 
 /**
- * @author : spiral
  * @description : 更改表数据
- * @since : 2020/12/16 - 5:28 下午
  */
 public class UpdateItem {
     public static void main(String[] args) {

@@ -3,9 +3,7 @@ package org.spiral.kudedemo;
 import org.apache.kudu.client.*;
 
 /**
- * @author : spiral
  * @description : 查询数据
- * @since : 2020/12/16 - 5:25 下午
  */
 public class ScanItem {
     public static void main(String[] args) {

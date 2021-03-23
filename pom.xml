@@ -85,6 +85,11 @@
         <type>pom</type>
         <scope>compile</scope>
     </dependency>
+    <dependency>
+        <groupId>org.apache.kudu</groupId>
+        <artifactId>kudu-client</artifactId>
+        <version>1.4.0</version>
+    </dependency>
 </dependencies>
 
     <!--maven打包插件 -->

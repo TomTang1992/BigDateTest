@@ -11,9 +11,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 /**
- * @author : spiral
  * @description : 使用API创建表
- * @since : 2020/12/16 - 2:57 下午
  */
 public class CreateTable {
 
