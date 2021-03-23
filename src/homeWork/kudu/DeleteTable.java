@@ -6,7 +6,6 @@ import org.apache.kudu.client.KuduException;
 /**
  * @author : spiral
  * @description : 删除表操作
- * @since : 2020/12/16 - 5:15 下午
  */
 public class DeleteTable {
     public static void main(String[] args) {
